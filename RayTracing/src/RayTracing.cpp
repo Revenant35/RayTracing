@@ -21,12 +21,16 @@ public:
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 		ImGui::Begin("Viewport");
+		
 		m_ViewportWidth = static_cast<uint32_t>(ImGui::GetContentRegionAvail().x);
 		m_ViewportHeight = static_cast<uint32_t>(ImGui::GetContentRegionAvail().y);
 
 		if(const auto image = m_Renderer.GetFinalImage())
 		{
-			ImGui::Image(image->GetDescriptorSet(), { static_cast<float>(image->GetWidth()), static_cast<float>(image->GetHeight()) });
+			ImGui::Image(image->GetDescriptorSet(),
+				{ static_cast<float>(image->GetWidth()), static_cast<float>(image->GetHeight()) },
+				ImVec2(0, 1), ImVec2(1, 0)
+			);
 		}
 		ImGui::End();
 		ImGui::PopStyleVar();
