@@ -4,19 +4,22 @@
 
 void Renderer::Resize(uint32_t width, uint32_t height)
 {
-    if (!m_FinalImage)
+    if(m_FinalImage && m_FinalImage->GetWidth() == width && m_FinalImage->GetHeight() == height)
     {
-        m_FinalImage = std::make_shared<Walnut::Image>(width, height, Walnut::ImageFormat::RGBA);
-        delete[] m_ImageData;
-        m_ImageData = new uint32_t[static_cast<unsigned long long>(width * height)];
+        return;
     }
 
-    if (m_FinalImage->GetWidth() != width && m_FinalImage->GetHeight() != height)
+    if(m_FinalImage)
     {
         m_FinalImage->Resize(width, height);
-        delete[] m_ImageData;
-        m_ImageData = new uint32_t[static_cast<unsigned long long>(width * height)];
     }
+    else
+    {
+        m_FinalImage = std::make_shared<Walnut::Image>(width, height, Walnut::ImageFormat::RGBA);
+    }
+
+     delete[] m_ImageData;
+     m_ImageData = new uint32_t[static_cast<unsigned long long>(width * height)];
 }
 
 void Renderer::Render()
