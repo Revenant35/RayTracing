@@ -15,7 +15,7 @@ namespace Utils
     }
 }
 
-void Renderer::Resize(uint32_t width, uint32_t height)
+void Renderer::OnResize(uint32_t width, uint32_t height)
 {
     if(m_FinalImage && m_FinalImage->GetWidth() == width && m_FinalImage->GetHeight() == height)
     {
@@ -35,19 +35,18 @@ void Renderer::Resize(uint32_t width, uint32_t height)
      m_ImageData = new uint32_t[static_cast<unsigned long long>(width * height)];
 }
 
-void Renderer::Render()
+void Renderer::Render(const Camera & camera)
 {
+    Ray ray;
+    ray.Origin = camera.GetPosition();
+    
     for (uint32_t y = 0; y < m_FinalImage->GetHeight(); y++)
     {
         for (uint32_t x = 0; x < m_FinalImage->GetWidth(); x++)
         {
-            auto coordinate = glm::vec2({
-                static_cast<float>(x) / static_cast<float>(m_FinalImage->GetWidth()),
-                static_cast<float>(y) / static_cast<float>(m_FinalImage->GetHeight())
-            });
-            coordinate = coordinate * 2.0f - 1.0f; // [0,1] -> [-1, 1]
-            auto color = PerPixel(coordinate);
-            color = glm::clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
+            ray.Direction = camera.GetRayDirections()[x + y * m_FinalImage->GetWidth()];
+            auto color = TraceRay(ray);
+            color = clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
             m_ImageData[x + y * m_FinalImage->GetWidth()] = Utils::ConvertToRGBA(color);
         }
     }
@@ -55,24 +54,20 @@ void Renderer::Render()
     m_FinalImage->SetData(m_ImageData);
 }
 
-glm::vec4 Renderer::PerPixel(const glm::vec2 & coordinate)
+glm::vec4 Renderer::TraceRay(const Ray & ray) const
 {
-    constexpr glm::vec3 rayOrigin(0.0f, 0.0f, 1.0f);
-    const glm::vec3 rayDirection(coordinate.x, coordinate.y, -1.0f);
     constexpr auto radius = 0.5f;
-    
-    // rayDirection = normalize(rayDirection);
 
-    const float a = dot(rayDirection, rayDirection);
-    const float b = 2.0f * dot(rayOrigin, rayDirection);
-    constexpr float c = dot(rayOrigin, rayOrigin) - radius * radius;
+    const float a = glm::dot(ray.Direction, ray.Direction);
+    const float b = 2.0f * glm::dot(ray.Origin, ray.Direction);
+    const float c = glm::dot(ray.Origin, ray.Origin) - radius * radius;
 
     // Quadratic formula discriminant:
     const float discriminant = b * b - 4.0f * a * c;
 
     if(discriminant < 0.0f)
     {
-        return { 0, 0, 0, 1 };
+        return backgroundColor;
     }
 
     // Quadratic formula:
@@ -82,12 +77,14 @@ glm::vec4 Renderer::PerPixel(const glm::vec2 & coordinate)
     // - sqrt(discriminant) will always be positive
     float t = (-b - sqrt(discriminant)) / (2.0f * a);
     
-    glm::vec3 hitPosition = rayOrigin + rayDirection * t;
-    glm::vec3 normal = normalize(hitPosition);
+    const glm::vec3 hitPosition = ray.Origin + ray.Direction * t;
+    const glm::vec3 normal = normalize(hitPosition);
 
-    glm::vec3 lightDirection = normalize(glm::vec3(-1, -1, -1));
-    float lightIntensity = glm::max(dot(normal, -lightDirection), 0.0f);
+    const glm::vec3 lightDirection = normalize(glm::vec3(-1, -1, -1));
+    const float lightIntensity = glm::max(dot(normal, -lightDirection), 0.0f);
     
-    glm::vec3 sphereColor{1, 0, 1};
-    return {sphereColor * lightIntensity , 1.0f};
+    glm::vec4 computedColor = sphereColor * lightIntensity;
+    computedColor.a = 1.0f;
+    
+    return computedColor;
 }
