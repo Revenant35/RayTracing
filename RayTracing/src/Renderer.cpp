@@ -35,7 +35,7 @@ void Renderer::OnResize(uint32_t width, uint32_t height)
      m_ImageData = new uint32_t[static_cast<unsigned long long>(width * height)];
 }
 
-void Renderer::Render(const Camera & camera)
+void Renderer::Render(const Camera & camera, const Scene & scene)
 {
     Ray ray;
     ray.Origin = camera.GetPosition();
@@ -45,7 +45,7 @@ void Renderer::Render(const Camera & camera)
         for (uint32_t x = 0; x < m_FinalImage->GetWidth(); x++)
         {
             ray.Direction = camera.GetRayDirections()[x + y * m_FinalImage->GetWidth()];
-            auto color = TraceRay(ray);
+            auto color = TraceRay(scene, ray);
             color = clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
             m_ImageData[x + y * m_FinalImage->GetWidth()] = Utils::ConvertToRGBA(color);
         }
@@ -54,37 +54,58 @@ void Renderer::Render(const Camera & camera)
     m_FinalImage->SetData(m_ImageData);
 }
 
-glm::vec4 Renderer::TraceRay(const Ray & ray) const
+glm::vec4 Renderer::TraceRay(const Scene & scene, const Ray & ray) const
 {
-    constexpr auto radius = 0.5f;
-
-    const float a = glm::dot(ray.Direction, ray.Direction);
-    const float b = 2.0f * glm::dot(ray.Origin, ray.Direction);
-    const float c = glm::dot(ray.Origin, ray.Origin) - radius * radius;
-
-    // Quadratic formula discriminant:
-    const float discriminant = b * b - 4.0f * a * c;
-
-    if(discriminant < 0.0f)
+    if(scene.Spheres.empty())
     {
         return backgroundColor;
     }
 
-    // Quadratic formula:
-    // (-) will always be the smallest value because
-    // - a is always positive (dot product of a vector with itself)
-    // - (-b) will have the same value between t0 and t1
-    // - sqrt(discriminant) will always be positive
-    float t = (-b - sqrt(discriminant)) / (2.0f * a);
+    const Sphere * closestSphere = nullptr;
+    float hitDistance = std::numeric_limits<float>::max();
     
-    const glm::vec3 hitPosition = ray.Origin + ray.Direction * t;
+    for(const auto & sphere : scene.Spheres)
+    {
+        glm::vec3 origin = ray.Origin - sphere.Position;
+
+        const float a = glm::dot(ray.Direction, ray.Direction);
+        const float b = 2.0f * glm::dot(origin, ray.Direction);
+        const float c = glm::dot(origin, origin) - sphere.Radius * sphere.Radius;
+
+        // Quadratic formula discriminant:
+        const float discriminant = b * b - 4.0f * a * c;
+
+        if(discriminant < 0.0f)
+        {
+            continue;
+        }
+
+        // Quadratic formula:
+        // (-) will always be the smallest value because
+        // - a is always positive (dot product of a vector with itself)
+        // - (-b) will have the same value between t0 and t1
+        // - sqrt(discriminant) will always be positive
+        if(const float sphereDistance = (-b - sqrt(discriminant)) / (2.0f * a); sphereDistance < hitDistance)
+        {
+            closestSphere = &sphere;
+            hitDistance = sphereDistance;
+        }
+    }
+
+    if(!closestSphere)
+    {
+        return backgroundColor;
+    }
+    
+    const glm::vec3 origin = ray.Origin - closestSphere->Position;
+
+    const glm::vec3 hitPosition = origin + ray.Direction * hitDistance;
     const glm::vec3 normal = normalize(hitPosition);
 
     const glm::vec3 lightDirection = normalize(glm::vec3(-1, -1, -1));
     const float lightIntensity = glm::max(dot(normal, -lightDirection), 0.0f);
     
-    glm::vec4 computedColor = sphereColor * lightIntensity;
-    computedColor.a = 1.0f;
+    glm::vec3 computedColor = closestSphere->Albedo * lightIntensity;
     
-    return computedColor;
+    return {computedColor, 1.0f};
 }
