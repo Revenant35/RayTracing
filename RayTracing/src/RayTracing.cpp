@@ -13,10 +13,6 @@ public:
 	{
 		ImGui::Begin("Settings");
 		ImGui::Text("Last Frame Time: %.3fms", m_LastFrameTime);
-		if (ImGui::Button("Render"))
-		{
-			Render();
-		}
 		ImGui::End();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));

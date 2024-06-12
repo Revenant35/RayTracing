@@ -16,7 +16,7 @@ public:
 
 private:
 
-    static uint32_t PerPixel(glm::vec2 coordinate);
+    static uint32_t PerPixel(const glm::vec2 & coordinate);
 
     std::shared_ptr<Walnut::Image> m_FinalImage;
     uint32_t * m_ImageData = nullptr;

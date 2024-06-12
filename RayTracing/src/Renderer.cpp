@@ -32,7 +32,7 @@ void Renderer::Render()
                 static_cast<float>(x) / static_cast<float>(m_FinalImage->GetWidth()),
                 static_cast<float>(y) / static_cast<float>(m_FinalImage->GetHeight())
             });
-            // coordinate = coordinate * 2.0f - 1.0f; // -1 -> 1
+            coordinate = coordinate * 2.0f - 1.0f; // [0,1] -> [-1, 1]
             m_ImageData[x + y * m_FinalImage->GetWidth()] = PerPixel(coordinate);
         }
     }
@@ -40,12 +40,45 @@ void Renderer::Render()
     m_FinalImage->SetData(m_ImageData);
 }
 
-uint32_t Renderer::PerPixel(glm::vec2 coordinate)
+uint32_t Renderer::PerPixel(const glm::vec2 & coordinate)
 {
-    const uint8_t r = static_cast<uint8_t>(255.99f * coordinate.x);
-    const uint8_t g = static_cast<uint8_t>(255.99f * coordinate.y);
-
-
+    constexpr glm::vec3 rayOrigin(0.0f, 0.0f, 2.0f);
+    const glm::vec3 rayDirection(coordinate.x, coordinate.y, -1.0f);
+    constexpr auto radius = 0.5f;
     
-    return 0xFF000000 | r | (g << 8);
+    // rayDirection = normalize(rayDirection);
+
+    const float a = dot(rayDirection, rayDirection);
+    const float b = 2.0f * dot(rayOrigin, rayDirection);
+    constexpr float c = dot(rayOrigin, rayOrigin) - radius * radius;
+
+    // Quadratic formula discriminant:
+    const float discriminant = b * b - 4.0f * a * c;
+
+    if(discriminant < 0.0f)
+    {
+        return 0xFF000000;
+    }
+
+    const float divisor = 1.0f / (2.0f * a);
+
+    // Select the closest intersection point in front of the camera:
+    float t = std::max(
+        (-b - sqrt(discriminant)) * divisor,
+        (-b + sqrt(discriminant)) * divisor
+    );
+
+    // Normalize t to [0, 1]:
+    t = (t + 1.0f) / 2.0f;
+
+    const glm::vec3 sphereCenter(0.0f, 0.0f, -1.0f);
+    const glm::vec3 intersectionPoint = rayOrigin + t * rayDirection;
+
+    const glm::vec3 normal = normalize(intersectionPoint - sphereCenter);
+    const glm::vec3 color = 0.5f * (normal + 1.0f);
+
+    return 0xFF000000 | // Alpha
+        (static_cast<uint32_t>(color.r * 255.0f) << 16) | // Red
+        (static_cast<uint32_t>(color.g * 255.0f) << 8) | // Green
+        static_cast<uint32_t>(color.b * 255.0f); // Blue
 }
