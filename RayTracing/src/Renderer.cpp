@@ -2,6 +2,19 @@
 
 #include "Walnut/Random.h"
 
+namespace Utils
+{
+    uint32_t ConvertToRGBA(const glm::vec4 & color)
+    {
+        const uint8_t red = static_cast<uint8_t>(color.r * 255.0f);
+        const uint8_t green = static_cast<uint8_t>(color.g * 255.0f);
+        const uint8_t blue = static_cast<uint8_t>(color.b * 255.0f);
+        const uint8_t alpha = static_cast<uint8_t>(color.a * 255.0f);
+
+        return (alpha << 24) | (blue << 16) | (green << 8) | red;
+    }
+}
+
 void Renderer::Resize(uint32_t width, uint32_t height)
 {
     if(m_FinalImage && m_FinalImage->GetWidth() == width && m_FinalImage->GetHeight() == height)
@@ -33,16 +46,18 @@ void Renderer::Render()
                 static_cast<float>(y) / static_cast<float>(m_FinalImage->GetHeight())
             });
             coordinate = coordinate * 2.0f - 1.0f; // [0,1] -> [-1, 1]
-            m_ImageData[x + y * m_FinalImage->GetWidth()] = PerPixel(coordinate);
+            auto color = PerPixel(coordinate);
+            color = glm::clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
+            m_ImageData[x + y * m_FinalImage->GetWidth()] = Utils::ConvertToRGBA(color);
         }
     }
 
     m_FinalImage->SetData(m_ImageData);
 }
 
-uint32_t Renderer::PerPixel(const glm::vec2 & coordinate)
+glm::vec4 Renderer::PerPixel(const glm::vec2 & coordinate)
 {
-    constexpr glm::vec3 rayOrigin(0.0f, 0.0f, 2.0f);
+    constexpr glm::vec3 rayOrigin(0.0f, 0.0f, 1.0f);
     const glm::vec3 rayDirection(coordinate.x, coordinate.y, -1.0f);
     constexpr auto radius = 0.5f;
     
@@ -57,28 +72,22 @@ uint32_t Renderer::PerPixel(const glm::vec2 & coordinate)
 
     if(discriminant < 0.0f)
     {
-        return 0xFF000000;
+        return { 0, 0, 0, 1 };
     }
 
-    const float divisor = 1.0f / (2.0f * a);
+    // Quadratic formula:
+    // (-) will always be the smallest value because
+    // - a is always positive (dot product of a vector with itself)
+    // - (-b) will have the same value between t0 and t1
+    // - sqrt(discriminant) will always be positive
+    float t = (-b - sqrt(discriminant)) / (2.0f * a);
+    
+    glm::vec3 hitPosition = rayOrigin + rayDirection * t;
+    glm::vec3 normal = normalize(hitPosition);
 
-    // Select the closest intersection point in front of the camera:
-    float t = std::max(
-        (-b - sqrt(discriminant)) * divisor,
-        (-b + sqrt(discriminant)) * divisor
-    );
-
-    // Normalize t to [0, 1]:
-    t = (t + 1.0f) / 2.0f;
-
-    const glm::vec3 sphereCenter(0.0f, 0.0f, -1.0f);
-    const glm::vec3 intersectionPoint = rayOrigin + t * rayDirection;
-
-    const glm::vec3 normal = normalize(intersectionPoint - sphereCenter);
-    const glm::vec3 color = 0.5f * (normal + 1.0f);
-
-    return 0xFF000000 | // Alpha
-        (static_cast<uint32_t>(color.r * 255.0f) << 16) | // Red
-        (static_cast<uint32_t>(color.g * 255.0f) << 8) | // Green
-        static_cast<uint32_t>(color.b * 255.0f); // Blue
+    glm::vec3 lightDirection = normalize(glm::vec3(-1, -1, -1));
+    float lightIntensity = glm::max(dot(normal, -lightDirection), 0.0f);
+    
+    glm::vec3 sphereColor{1, 0, 1};
+    return {sphereColor * lightIntensity , 1.0f};
 }
