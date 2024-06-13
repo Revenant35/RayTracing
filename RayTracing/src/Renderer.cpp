@@ -40,11 +40,21 @@ void Renderer::Render(const Camera & camera, const Scene & scene)
     m_ActiveScene = &scene;
     m_ActiveCamera = &camera;
 
+    // const auto rayCountPerPixel = 1;
+
     for (uint32_t y = 0; y < m_FinalImage->GetHeight(); y++)
     {
         for (uint32_t x = 0; x < m_FinalImage->GetWidth(); x++)
         {
-            auto color = RayGen(x, y);
+            auto color = glm::vec4(0.0f);
+            
+            // for(int i = 0; i < rayCountPerPixel; i++)
+            // {
+            //     color += RayGen(x, y);
+            // }
+
+            // color /= static_cast<float>(rayCountPerPixel);
+            color = RayGen(x, y);
             color = clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
             m_ImageData[x + y * m_FinalImage->GetWidth()] = Utils::ConvertToRGBA(color);
         }
@@ -61,7 +71,7 @@ glm::vec4 Renderer::RayGen(const uint32_t x, const uint32_t y)
 
     glm::vec3 color(0.0f);
     
-    const int bounces = 3;
+    const int bounces = 2;
     float reflectionMultiplier = 1.0f;
     float nudge = 0.001f;
     
@@ -70,8 +80,7 @@ glm::vec4 Renderer::RayGen(const uint32_t x, const uint32_t y)
         auto payload = TraceRay(ray);
         if(!payload.Hit)
         {
-            glm::vec3 skyColor = glm::vec3(0.0f, 0.0f, 0.0f);
-            color += skyColor * reflectionMultiplier;
+            color += backgroundColor * reflectionMultiplier;
             break;
         }
 
@@ -79,12 +88,13 @@ glm::vec4 Renderer::RayGen(const uint32_t x, const uint32_t y)
         const float lightIntensity = glm::max(dot(payload.WorldNormal, -lightDirection), 0.0f);
 
         const Sphere & sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
-        glm::vec3 sphereColor = sphere.Albedo;
+        const Material::Material & material = m_ActiveScene->Materials[sphere.MaterialIndex];
+        glm::vec3 sphereColor = material.Albedo;
         color += sphereColor * lightIntensity * reflectionMultiplier;
 
         reflectionMultiplier *= 0.5f;
         ray.Origin = payload.WorldPosition + payload.WorldNormal * nudge;
-        ray.Direction = reflect(ray.Direction, payload.WorldNormal);
+        ray.Direction = reflect(ray.Direction, payload.WorldNormal + material.Roughness * Walnut::Random::Vec3(-0.5f, 0.5f));
     }
     
 

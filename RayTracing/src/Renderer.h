@@ -42,6 +42,6 @@ private:
     
     std::shared_ptr<Walnut::Image> m_FinalImage;
     uint32_t * m_ImageData = nullptr;
-    glm::vec4 backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    glm::vec3 backgroundColor{0.6f, 0.7f, 0.9f};
 
 };

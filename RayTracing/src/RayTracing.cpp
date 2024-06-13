@@ -14,8 +14,28 @@ public:
     ExampleLayer()
         :m_Camera(45.0f, 0.1f, 100.0f )
     {
-        m_Scene.Spheres.push_back(Sphere{{0.5f, -2.0f, 1.0f}, 0.25f, {1.0f, 1.0f, 0.0f}});
-        m_Scene.Spheres.push_back(Sphere{{1.0f, 1.0f, 0.0f}, 0.15f, {1.0f, 0.0f, 1.0f}});
+        Material::Material & pinkSphere = m_Scene.Materials.emplace_back();
+        pinkSphere.Albedo = {1.0f, 0.0f, 1.0f};
+        pinkSphere.Roughness = 0.0f;
+        pinkSphere.Metallic = 0.0f;
+
+        Material::Material & blueSphere = m_Scene.Materials.emplace_back();
+        blueSphere.Albedo = {0.2f, 0.3f, 1.0f};
+        blueSphere.Roughness = 0.1f;
+        blueSphere.Metallic = 0.0f;
+        
+        Sphere sphere1;
+        sphere1.Position = {0.0f, 0.0f, 0.0f};
+        sphere1.Radius = 1.0f;
+        sphere1.MaterialIndex = 0;
+
+        Sphere sphere2;
+        sphere2.Position = {0.0f, -101.0f, 0.0f};
+        sphere2.Radius = 100.0f;
+        sphere2.MaterialIndex = 1;
+
+        m_Scene.Spheres.push_back(sphere1);
+        m_Scene.Spheres.push_back(sphere2);
     }
 
     virtual void OnUpdate(float ts) override
@@ -37,13 +57,26 @@ public:
             Sphere & sphere = m_Scene.Spheres[i];
             ImGui::Text("Sphere %d", i + 1);
             ImGui::DragFloat3("Position", glm::value_ptr(sphere.Position), 0.025f);
-            ImGui::DragFloat("Radius", &sphere.Radius, 0.01f);
-            ImGui::ColorEdit3("Albedo", glm::value_ptr(sphere.Albedo));
+            ImGui::DragFloat("Radius", &sphere.Radius, 0.01f, 0.0f);
+            ImGui::DragInt("Material", reinterpret_cast<int *>(&sphere.MaterialIndex), 1, 0, m_Scene.Materials.size() - 1);
             ImGui::Separator();
 
             ImGui::PopID();
         }
-        
+
+        for(size_t i = 0; i < m_Scene.Materials.size(); i++)
+        {
+            ImGui::PushID(i);
+
+            Material::Material & material = m_Scene.Materials[i];
+            ImGui::ColorEdit3("Albedo", glm::value_ptr(material.Albedo));
+            ImGui::DragFloat("Roughness", &material.Roughness, 0.01f, Material::MIN_ROUGHNESS, Material::MAX_ROUGHNESS);
+            ImGui::DragFloat("Metallic", &material.Metallic, 0.01f, Material::MIN_METALLIC, Material::MAX_METALLIC);
+            ImGui::Separator();
+
+            ImGui::PopID();
+
+        }
 
         ImGui::End();
 
