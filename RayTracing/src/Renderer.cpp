@@ -88,7 +88,7 @@ glm::vec4 Renderer::RayGen(const uint32_t x, const uint32_t y)
         const float lightIntensity = glm::max(dot(payload.WorldNormal, -lightDirection), 0.0f);
 
         const Sphere & sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
-        const Material::Material & material = m_ActiveScene->Materials[sphere.MaterialIndex];
+        const Materials::Material & material = m_ActiveScene->Materials[sphere.MaterialIndex];
         glm::vec3 sphereColor = material.Albedo;
         color += sphereColor * lightIntensity * reflectionMultiplier;
 

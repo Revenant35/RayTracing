@@ -2,7 +2,7 @@
 #include <vector>
 #include <glm/vec3.hpp>
 
-namespace Material
+namespace Materials
 {
     constexpr float MIN_ROUGHNESS = 0.0f;
     constexpr float MAX_ROUGHNESS = 1.0f;
