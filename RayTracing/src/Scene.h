@@ -2,7 +2,7 @@
 #include <vector>
 #include <glm/vec3.hpp>
 
-namespace Material
+namespace Materials
 {
     constexpr float MIN_ROUGHNESS = 0.0f;
     constexpr float MAX_ROUGHNESS = 1.0f;
@@ -24,11 +24,11 @@ struct Sphere
     glm::vec3 Position{0.0f};
     float Radius = 0.5f;
     
-    size_t MaterialIndex = 0;
+    int MaterialIndex = 0;
 };
 
 struct Scene
 {
     std::vector<Sphere> Spheres;
-    std::vector<Material::Material> Materials;
+    std::vector<Materials::Material> Materials;
 };
