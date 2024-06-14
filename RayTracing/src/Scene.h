@@ -17,18 +17,26 @@ namespace Materials
     };
 }
 
-
-
-struct Sphere
+namespace Shapes
 {
-    glm::vec3 Position{0.0f};
-    float Radius = 0.5f;
+    constexpr float MIN_RADIUS = 0.1f;
+    constexpr float MAX_RADIUS = 100.0f;
     
-    int MaterialIndex = 0;
-};
+    struct Sphere
+    {
+        glm::vec3 Position{0.0f};
+        float Radius = 0.5f;
+    
+        int MaterialIndex = 0;
+    };
+}
+
+
+
+
 
 struct Scene
 {
-    std::vector<Sphere> Spheres;
+    std::vector<Shapes::Sphere> Spheres;
     std::vector<Materials::Material> Materials;
 };

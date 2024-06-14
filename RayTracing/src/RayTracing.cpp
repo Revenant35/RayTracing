@@ -24,12 +24,12 @@ public:
         blueSphere.Roughness = 0.1f;
         blueSphere.Metallic = 0.0f;
         
-        Sphere sphere1;
+        Shapes::Sphere sphere1;
         sphere1.Position = {0.0f, 0.0f, 0.0f};
         sphere1.Radius = 1.0f;
         sphere1.MaterialIndex = 0;
 
-        Sphere sphere2;
+        Shapes::Sphere sphere2;
         sphere2.Position = {0.0f, -101.0f, 0.0f};
         sphere2.Radius = 100.0f;
         sphere2.MaterialIndex = 1;
@@ -38,15 +38,24 @@ public:
         m_Scene.Spheres.push_back(sphere2);
     }
 
-    virtual void OnUpdate(float ts) override
+    void OnUpdate(float ts) override
     {
-        m_Camera.OnUpdate(ts);
+        const auto moved = m_Camera.OnUpdate(ts);
+        if (moved)
+        {
+            m_Renderer.ResetFrameIndex();
+        }
     }
 
-    virtual void OnUIRender() override
+    void OnUIRender() override
     {
         ImGui::Begin("Settings");
         ImGui::Text("Last Frame Time: %.3fms", m_LastFrameTime);
+        ImGui::Checkbox("Accumulate", &m_Renderer.GetSettings().Accumulate);
+        if (ImGui::Button("Reset Frame Accumulation"))
+        {
+            m_Renderer.ResetFrameIndex();
+        }
         ImGui::End();
         
         ImGui::Begin("Scene");
@@ -54,10 +63,10 @@ public:
         {
             ImGui::PushID(i);
             
-            Sphere & sphere = m_Scene.Spheres[i];
+            Shapes::Sphere & sphere = m_Scene.Spheres[i];
             ImGui::Text("Sphere %d", i + 1);
             ImGui::DragFloat3("Position", glm::value_ptr(sphere.Position), 0.025f);
-            ImGui::DragFloat("Radius", &sphere.Radius, 0.01f, 0.0f);
+            ImGui::DragFloat("Radius", &sphere.Radius, 0.01f, Shapes::MIN_RADIUS, Shapes::MAX_RADIUS);
             ImGui::DragInt("Material", &sphere.MaterialIndex, 1, 0, m_Scene.Materials.size() - 1);
             ImGui::Separator();
 

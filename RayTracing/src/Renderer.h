@@ -13,11 +13,19 @@ class Renderer
 {
 public:
 
+    struct Settings
+    {
+        bool Accumulate = true;
+    };
+    
     Renderer() = default;
     void OnResize(uint32_t width, uint32_t height);
     void Render(const Camera & camera, const Scene & scene);
     
     std::shared_ptr<Walnut::Image> GetFinalImage() const { return m_FinalImage; }
+    Settings & GetSettings() { return m_Settings; }
+
+    void ResetFrameIndex() {m_FrameIndex = 0;}
 
 private:
 
@@ -39,9 +47,12 @@ private:
     
     const Scene * m_ActiveScene = nullptr;
     const Camera * m_ActiveCamera = nullptr;
+    Settings m_Settings;
     
     std::shared_ptr<Walnut::Image> m_FinalImage;
     uint32_t * m_ImageData = nullptr;
+    glm::vec4 * m_AccumulationData = nullptr;
+    uint32_t m_FrameIndex = 0;
     glm::vec3 backgroundColor{0.6f, 0.7f, 0.9f};
 
 };
